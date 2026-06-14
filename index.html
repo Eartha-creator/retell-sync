@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="复述练习">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#fafaf8">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect width='120' height='120' rx='24' fill='%232c6b4f'/><text x='60' y='72' text-anchor='middle' font-size='56'>🧠</text></svg>">
+<title>复述练习面板</title>
+<style>
+  :root {
+    --bg: #fafaf8;
+    --card-bg: #ffffff;
+    --text: #1a1a1a;
+    --text-secondary: #5e5e5e;
+    --border: #e6e4dd;
+    --accent: #2c6b4f;
+    --accent-light: #e8f4ed;
+    --done-bg: #f7f7f5;
+    --done-text: #999;
+    --progress-bg: #e6e4dd;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06);
+    --tag-bg: #f2f0ea;
+    --warn: #c47f2a;
+    --safe-bottom: env(safe-area-inset-bottom, 16px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e1c;
+      --card-bg: #282826;
+      --text: #e8e6e0;
+      --text-secondary: #a09e98;
+      --border: #3a3834;
+      --accent: #5dba8a;
+      --accent-light: #1e3328;
+      --done-bg: #232320;
+      --done-text: #6a6a68;
+      --progress-bg: #3a3834;
+      --shadow: 0 1px 3px rgba(0,0,0,0.3);
+      --tag-bg: #33312e;
+      --warn: #e0a450;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 16px;
+    padding-bottom: var(--safe-bottom);
+    max-width: 720px;
+    margin: 0 auto;
+    -webkit-overflow-scrolling: touch;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    text-align: center;
+    padding: 32px 0 24px;
+    padding-top: max(32px, env(safe-area-inset-top, 16px));
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 2px;
+  }
+  .subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  /* Sync badge */
+  .sync-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.68rem;
+    padding: 2px 10px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .sync-badge.synced { background: var(--accent-light); color: var(--accent); }
+  .sync-badge.syncing { background: #fef3e4; color: var(--warn); }
+  .sync-badge.offline { background: #f5f5f4; color: #999; }
+  .sync-badge.unconfigured { background: #fef0f0; color: #c44; }
+  /* Progress */
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--progress-bg);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  .progress-num {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 48px;
+    text-align: right;
+  }
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .btn {
+    font-size: 0.78rem;
+    padding: 8px 16px;
+    min-height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    background: var(--card-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .btn:active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  /* Toast */
+  .toast {
+    position: fixed;
+    top: 20px;
+    top: max(20px, env(safe-area-inset-top, 16px));
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 22px;
+    font-size: 0.82rem;
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.25s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; }
+  /* Settings modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 24px 20px 20px;
+    max-width: 380px;
+    width: 90%;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  }
+  .modal h2 { font-size: 1.1rem; margin-bottom: 4px; }
+  .modal .desc { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5; }
+  .modal label { font-size: 0.75rem; font-weight: 600; display: block; margin-bottom: 4px; color: var(--text-secondary); }
+  .modal input {
+    width: 100%;
+    font-size: 0.85rem;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: inherit;
+    background: var(--bg);
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .modal input:focus { outline: none; border-color: var(--accent); }
+  .modal .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+  .modal .btn-primary {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  .modal .btn-primary:active { opacity: 0.85; }
+  .modal .link { font-size: 0.72rem; color: var(--accent); text-decoration: underline; cursor: pointer; display: inline-block; margin-bottom: 8px; }
+  /* iOS install banner */
+  .ios-banner {
+    background: var(--accent-light);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 0.8rem;
+    color: var(--accent);
+    text-align: center;
+    line-height: 1.6;
+    display: none;
+  }
+  .ios-banner.visible { display: block; }
+  /* Section */
+  .section-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin: 28px 0 10px 4px;
+  }
+  /* Cards */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+    transition: all 0.2s;
+    position: relative;
+  }
+  .card.done {
+    background: var(--done-bg);
+    border-color: transparent;
+  }
+  .card.done .card-title,
+  .card.done .card-concept,
+  .card.done .card-body { color: var(--done-text); }
+  .card.done .tag { opacity: 0.5; }
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .cb {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--card-bg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    margin-top: 1px;
+    font-size: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .card.done .cb {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .card.done .cb::after {
+    content: "✓";
+    font-size: 15px;
+    color: #fff;
+    font-weight: 700;
+  }
+  .card-header {
+    flex: 1;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    min-height: 44px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .card-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+  .card-concept {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    background: var(--tag-bg);
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin-right: 4px;
+  }
+  .card-body {
+    font-size: 0.88rem;
+    margin-top: 10px;
+    display: none;
+    color: var(--text);
+    letter-spacing: 0.01em;
+  }
+  .card-body p { margin-bottom: 0.7em; }
+  .card-body p:last-child { margin-bottom: 0; }
+  .card.expanded .card-body { display: block; }
+  .expand-hint {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-top: 6px;
+    display: block;
+  }
+  .card.expanded .expand-hint { display: none; }
+  .card.done .card-body { color: var(--done-text); }
+  .expand-all-hint {
+    text-align: center;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin: 4px 0 12px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  @media (max-width: 480px) {
+    body { padding: 10px; padding-bottom: var(--safe-bottom); }
+    header { padding: 20px 0 16px; padding-top: max(20px, env(safe-area-inset-top, 16px)); }
+    h1 { font-size: 1.25rem; }
+    .card { padding: 12px 14px; border-radius: 10px; }
+    .card-title { font-size: 0.9rem; }
+    .card-body { font-size: 0.84rem; }
+    .cb { width: 26px; height: 26px; min-width: 26px; }
+  }
+  footer {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    padding: 24px 0 12px;
+    padding-bottom: max(12px, var(--safe-bottom));
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧠 大脑前额叶锻炼</h1>
+  <div class="subtitle">复述练习 — 共 <span id="totalCount">14</span> 段</div>
+  <div class="sync-badge unconfigured" id="syncBadge" onclick="openSettings()">☁️ 未设置云同步</div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="progress-num" id="progressNum">0/14</div>
+  </div>
+  <div class="toolbar">
+    <button class="btn" onclick="toggleAll()" title="全部展开/折叠">📖 展开/折叠</button>
+    <button class="btn" onclick="exportState()" title="导出进度（含同步配置）">📤 导出</button>
+    <button class="btn" onclick="importState()" title="从剪贴板导入进度">📥 导入</button>
+    <button class="btn" onclick="openSettings()" title="设置云同步">⚙️ 同步</button>
+    <button class="btn" onclick="resetAll()">🔄 重置</button>
+  </div>
+</header>
+
+<div class="ios-banner" id="iosBanner">
+  💡 <strong>加到主屏幕</strong>：点 ⎋ <strong>分享</strong> → <strong>添加到主屏幕</strong> → 像 App 用
+</div>
+
+<div class="expand-all-hint" onclick="toggleAll()">点击标题展开/折叠段落内容</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- Settings Modal -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal">
+    <h2>☁️ 云同步设置</h2>
+    <p class="desc">
+      使用 <a href="https://jsonbin.io" target="_blank" rel="noopener">JSONBin.io</a>（免费）同步所有设备的进度。<br>
+      只需设置一次，每个设备输入相同的 API Key + Bin ID。
+    </p>
+    <label>JSONBin API Key（Master Key）</label>
+    <input type="password" id="apiKeyInput" placeholder="粘贴你的 API Key…" autocomplete="off">
+    <label>Bin ID（自动创建则留空）</label>
+    <input type="text" id="binIdInput" placeholder="留空 = 自动创建新的同步仓库" autocomplete="off">
+    <span class="link" onclick="window.open('https://jsonbin.io/api-keys','_blank')">👉 还没有 API Key？点这里注册（免费） →</span>
+    <div class="actions">
+      <button class="btn" onclick="closeSettings()">取消</button>
+      <button class="btn btn-primary" onclick="saveSyncConfig()">💾 保存并连接</button>
+    </div>
+  </div>
+</div>
+
+<div class="section-title">一 · 原参考段落</div>
+<div id="cards1"></div>
+
+<div class="section-title">二 · 扩展段落</div>
+<div id="cards2"></div>
+
+<footer>复述练习面板 · <span id="footerMsg">进度保存在本设备</span></footer>
+
+<script>
+// ── DATA ────────────────────────────────────────────
+const PASSAGES_1 = [
+  { id:"c01",num:"01",title:"德里的眼镜蛇",concept:"眼镜蛇效应 — 激励与反噬",tags:["博弈论","制度设计"],body:`<p>在殖民时期的印度德里，眼镜蛇泛滥成灾，严重威胁市民安全。当地政府为了解决这一问题，颁布了一项极具吸引力的法令：任何市民只要上交一条死蛇，就能领取一枚金币的奖励。</p><p>政策初见成效，大量死蛇被送往衙门，但政府很快发现了一个诡异的现象——街头上的眼镜蛇不仅没有减少，反而越来越多。</p><p>原来，精明的商人发现，比起冒着生命危险去野外抓蛇，不如在自家后院大规模养殖。为了持续换取金币，养蛇成了当时最赚钱的"产业"。</p><p>当政府意识到这个荒谬的逻辑并取消奖励时，那些失去了兑换价值的蛇被养殖者大量放生，导致德里的蛇灾比政策实施前还要严重。</p>` },
+  { id:"c02",num:"02",title:"海盗的分金逻辑",concept:"逆向归纳法 — 最弱者如何成为最强者",tags:["博弈论","逆向推理"],body:`<p>五名绝对理性的海盗抢到了100枚金币，他们决定按照排名顺序由1号开始提议分配方案。如果方案被半数或以上的人通过，就按此执行；否则，提议者将被扔进大海喂鲨鱼，轮到下一顺位继续。看似1号必死无疑，因为剩下的人总想除掉他以分得更多。</p><p>然而，1号通过逆向推导看穿了局势：如果只剩下4号和5号，5号无论4号提什么都会反对，好独吞100枚。因此，4号为了保命，必须无条件支持3号。3号察觉到这一点后，就会给4号0枚。</p><p>此时，1号意识到，他只需要分给2号、3号中哪怕1枚金币，或者直接收买最害怕出局的4号，就能以极小的代价换取方案通过。最终，最危险的1号反而拿走了绝大部分金币。</p>` },
+  { id:"c03",num:"03",title:"那扇不被修理的破窗",concept:"破窗效应 — 微小失序如何引发系统崩溃",tags:["社会心理学","秩序"],body:`<p>在社会心理学中，有一个关于城市混乱的经典描述：如果一座建筑物的窗户被打破了，却没有人去修理，那么路过的人就会得出结论——这里是无人管辖的。不久之后，其他的窗户也会接二连三地被打破。</p><p>这种破坏行为会迅速从一扇窗户蔓延到整条街道，甚至整个社区。因为"第一扇破窗"传递了一个强烈的心理暗示：规则在这里已经失效，任何破坏行为都不会受到惩罚。随着涂鸦、乱扔垃圾和偷窃行为的相继出现，原本有序的社区会迅速陷入失控。</p><p>这告诉我们，一旦微小的秩序崩塌被放任自流，它最终会演变成无法挽回的灾难。</p>` },
+  { id:"c04",num:"04",title:"柠檬市场的崩塌",concept:"柠檬市场 — 信息不对称与逆向选择",tags:["经济学","信息不对称"],body:`<p>在二手车交易中，买家和卖家之间存在着一道看不见的墙。卖家清楚地知道自己的车是性能良好的"好车"，还是毛病不断的"烂车"（在英语中被称为柠檬）。而买家在成交前，仅凭外观很难判断其真实价值，因此他们只愿意支付一个折中的平均价格。</p><p>这个看似公平的定价策略却导致了市场的毁灭：好车的车主觉得价格太低，不愿亏本卖，于是纷纷带着好车退出市场。结果，市场上剩下的全都是急于出手的烂车。</p><p>当买家意识到市场上只有"柠檬"时，出价会进一步压低，最终导致整个二手车市场的良性循环彻底断裂。这种信息的不对称，让平庸彻底驱逐了优秀。</p>` },
+  { id:"c05",num:"05",title:"疑邻盗斧的偏见",concept:"确认偏误 — 预设结论如何扭曲观察",tags:["认知偏误","心理学"],body:`<p>有一个人丢了一把斧头，他怀疑是邻居家的儿子偷走了。于是，他开始暗中观察那孩子。他觉得邻居儿子走路的样子像小偷，脸上的神色像小偷，就连说话的语气和举手投足之间，也无处不像是一个偷斧头的人。</p><p>没过几天，他在上山砍柴的谷底找到了那把遗失的斧头，原来是自己不小心掉在那里的。当他再次遇到邻居家的儿子时，却发现这孩子走路、神色和说话的样子，一点也不像小偷了。</p><p>这个故事生动地演绎了什么是"确认偏误"：当我们内心预设了一个结论时，我们的大脑会自动过滤掉矛盾的证据，而只采集那些支持我们偏见的信息。</p>` },
+  { id:"c06",num:"06",title:"诸葛亮的空城博弈",concept:"信号博弈 — 利用对手对自己的认知反向操作",tags:["博弈论","心理博弈"],body:`<p>司马懿率领十五万大军直逼西城，而城内只有一些老弱残兵。面对这种必败之局，诸葛亮却下令大开城门，并在城楼上焚香弹琴，姿态闲适。司马懿引兵来到城下，看到这一幕后，不仅没有进城，反而下令立刻撤军。</p><p>司马懿的逻辑并非因为胆小，而是基于长久以来对诸葛亮的"心理建模"。他深知诸葛亮一生唯独谨慎、从不冒险。</p><p>在司马懿看来，一个极度谨慎的人做出极其反常的挑衅行为，城内必有重兵埋伏。这种利用对方对自己性格的"刻板印象"来传递假信号的策略，本质上是一场高阶的心理博弈。</p>` }
+];
+
+const PASSAGES_2 = [
+  { id:"c07",num:"07",title:"飞机上该加固哪一部分",concept:"幸存者偏差 — 你看不见的数据才是真相",tags:["统计学","认知偏误"],body:`<p>二战期间，盟军统计了从战场返回的轰炸机弹孔分布。数据显示，机翼和机身上的弹孔密密麻麻，而发动机部位的弹孔却寥寥无几。军官们的第一反应很直接：弹孔多的地方需要加固钢板。</p><p>然而，统计学家沃尔德（Abraham Wald）提出了一个令人错愕的判断：<strong>应该加固的恰恰是弹孔最少的发动机部位</strong>。他的逻辑冷峻而无法反驳——那些发动机被击中的飞机，根本飞不回来。映入统计的弹孔全属于"幸存者"，而分布在发动机上的弹孔并没有消失，只是和飞机一起沉进了海底。</p><p>这就是所谓的幸存者偏差：你看得见的数据是已经活下来的人提供的，而决定胜负的信息，往往躺在沉默的死亡之中。你只看见成功者的经验，却看不见失败者的尸体——那才是真相所在。</p>` },
+  { id:"c08",num:"08",title:"为什么好人会在人群中沉默",concept:"旁观者效应 / 责任扩散",tags:["社会心理学","决策"],body:`<p>1964年，纽约发生了一起令人震惊的案件——一位名叫凯蒂·吉诺维斯（Kitty Genovese）的女子在街头被袭击，袭击持续了超过半小时，38位邻居听到了呼救声，却没有一个人报警。</p><p>舆论一片哗然。人们将原因归结为都市人的冷漠和道德沦丧。但社会心理学家拉坦内（Bibb Latané）和达利（John Darley）却提出了一个更深刻的反直觉解释：<strong>目击者并非因为冷漠，恰恰是因为人数太多而不作为</strong>。每个人都在等别人先行动，围观者越多，个人感受到的责任越稀薄。大脑的潜意识在说：既然大家都无动于衷，那情况一定没那么严重。</p><p>这种"责任扩散"效应意味着，在公共场合遇险时，求救时指定一个具体的人（比如"穿蓝衣服的先生，请帮我叫救护车"）远比向人群呼救更有效——你打破的不是他的冷漠，而是他的犹豫。</p>` },
+  { id:"c09",num:"09",title:"牧羊人和那片消失的草地",concept:"公地悲剧 — 个体理性导致集体毁灭",tags:["经济学","集体行动"],body:`<p>有一片公共的牧场，村里所有的牧羊人都可以把羊群赶进去吃草。起初，每个牧羊人都计算得很清楚：多养一只羊，收益全归自己，而草被多吃一口的成本则由所有人平摊。这笔账算下来，多养羊永远是对个人划算的生意。</p><p>于是，第一个牧羊人多养了十只，第二个不甘落后也增加二十只。每个人都在做着对自己最理性的选择。但没有人注意到，草的生长速度远远赶不上羊群的增长。不到三年，牧场被啃成了光秃秃的荒地，所有人的羊都饿死了。</p><p>这就是哈丁（Garrett Hardin）提出的"公地悲剧"：<strong>在共享资源面前，每个人都做出对自己最优的局部决策，最终一定导致对所有人最坏的全局结果</strong>。它适用于碳排放、海洋渔业、公司预算争夺——只要资源没有明确的产权边界，毁灭就是注定的终点。</p>` },
+  { id:"c10",num:"10",title:"两个囚犯的命运",concept:"纳什均衡 — 局部最优 ≠ 全局最优",tags:["博弈论","纳什均衡"],body:`<p>两名嫌疑犯被警察分开审讯。警方缺乏定罪所需的关键证据，于是拿出一套"坦白从宽"的方案：如果一个人坦白出卖同伙，自己可以获释而对方被判十年；如果两人都保持沉默，各自只被关六个月；如果两人互相出卖，则各判五年。</p><p>从两人共同的利益来看，最佳策略显然是保持沉默——六个月对十年。但嫌疑人A却在脑中开始了推理：如果同伙保持沉默，自己坦白就能立刻脱身；如果同伙坦白，自己也必须坦白，否则十年牢变成自己的。所以，无论对方怎么做，"坦白"永远是自己最优的选项。嫌疑人B也在隔壁审讯室里得出了完全相同的结论。</p><p>最终两人都坦白了——各判五年。每个人都在理性地最大化个人利益，却联手把自己推向了更糟的结局。这就是纳什均衡：<strong>局部最优策略的叠加，不等于全局最优解</strong>。</p>` },
+  { id:"c11",num:"11",title:"为什么你舍不得退出",concept:"沉没成本谬误 — 不能放手的代价",tags:["行为经济学","决策"],body:`<p>一家公司投入了三个亿研发一款新型客机。项目进展到第三年，市场报告已经清晰地显示：同类产品售价远低于成本，继续投入只会越亏越多。但CEO看着已经烧掉的三个亿，咬咬牙说："投入这么多了，现在停手，前面的全打水漂。"</p><p>于是公司继续砸钱、继续延期。五年后，累计亏损超支到三十亿，项目才被迫终止。审计师写报告时发现了一个残酷的事实：在第三年那个节点上，<strong>如果决策者完全忽略已投入的三亿，只看未来的成本与收益，答案一目了然——立即止损</strong>。</p><p>这就是沉没成本谬误。已支付的代价无论多惨重，都不应该影响下一步的决策，因为沉没成本无论决策如何都无法收回。理性只问一句话：从现在开始，投入的还能不能收回来？可惜，大脑对"失去"的抗拒让这问题无人敢问。</p>` },
+  { id:"c12",num:"12",title:"命运之轮如何操控你的判断",concept:"锚定效应 — 任意数字如何污染判断",tags:["认知偏误","心理学"],body:`<p>心理学家特沃斯基（Amos Tversky）和卡尼曼（Daniel Kahneman）做过一个简单的实验。他们让受试者转动一个标有1到100数字的"命运之轮"，然后问一个问题："非洲国家在联合国中的比例是多少？"</p><p>实验的诡异之处在于，这个转盘是人为操控的——它永远只会停在10或65两个数字上。没有人以为自己受了影响，但结果却惊人地一致：转到10的人平均估值为25%，转到65的人平均估值为45%。一个完全无关的随机数字，竟然硬生生把人的判断拖向了它自身。</p><p>这就是锚定效应：<strong>大脑在做判断时，会自动抓住最先出现的任何一个数字作为"锚点"，然后从这个锚点做不充分的调整</strong>。你的工资期待、对方的第一口出价、标签上的"原价"——每一次看似独立的判断背后，都有一枚你意识不到的锚沉在水下。</p>` },
+  { id:"c13",num:"13",title:"为什么失去比得到更痛",concept:"损失厌恶 / 前景理论",tags:["行为经济学","认知偏误"],body:`<p>想象你面前有两个选项：A，100%的概率拿走五万块钱；B，50%的概率拿走十万，50%的概率一无所获。大多数人会选A——落袋为安。</p><p>现在把情境反转：A，100%的概率损失五万块；B，50%的概率损失十万，50%的概率不亏不赚。大多数人反而会选B——赌一把。面对获得时，我们是厌恶风险的保守派；面对损失时，却变成了铤而走险的赌徒。</p><p>卡尼曼的"前景理论"揭示了一个深刻的不对称：<strong>失去的痛苦大约是获得快感的两倍</strong>。这解释了为什么投资者会死死捂住套牢的股票不肯卖——卖掉是确认损失，而账面浮亏可以假装它还在某个拐角处等着回来。这从来不是财务问题，而是大脑对"失去"天然过载的针刺反应。</p>` },
+  { id:"c14",num:"14",title:"一个抢银行的柠檬故事",concept:"达克效应 — 无知者无法认识自己的无知",tags:["认知偏误","元认知"],body:`<p>1995年，一个名叫麦克阿瑟·惠勒（McArthur Wheeler）的男子在光天化日之下抢劫了两家匹兹堡银行，全程没有做任何伪装。警察在不到四小时内将其抓获时，他表现出了真诚的困惑——"可我在脸上涂了柠檬汁啊"。</p><p>原来，柠檬汁曾被用于制作隐形墨水，涂在纸上写字干了以后会消失。惠勒就此推断：既然柠檬汁能让纸上字迹隐形，那涂在自己脸上当然也能让摄像头拍不到脸。他在抢劫前还专门用拍立得自拍了一张——镜头里确实没有他的影像。那其实只是相机的偶然故障，但他对此毫不怀疑。</p><p>心理学家邓宁（David Dunning）和克鲁格（Justin Kruger）听到这个故事后找到了它的深层解释：<strong>能力低下的人同时缺乏"认识到自己能力低下"的元认知能力</strong>。你不会知道自己不知道什么，因为发现自己无知的那项技能，恰好就是你欠缺的那项技能本身。愚蠢的第一受害人从来不是别人，是愚蠢者自己。</p>` }
+];
+
+// ── STATE ───────────────────────────────────────────
+const STATE_VERSION = 2;
+let state = { done: {}, expanded: {} };
+let syncConfig = { apiKey: "", binId: "", configured: false };
+let syncTimer = null;
+let syncing = false;
+
+function loadLocal() {
+  try {
+    // Load progress state
+    const raw = localStorage.getItem("retell_state");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      state.done = parsed.done || {};
+      state.expanded = parsed.expanded || {};
+    }
+    // Load sync config
+    const cfg = localStorage.getItem("retell_sync");
+    if (cfg) {
+      syncConfig = JSON.parse(cfg);
+    }
+  } catch(e) {
+    console.warn("Local load failed", e);
+  }
+}
+
+function saveLocal() {
+  try {
+    localStorage.setItem("retell_state", JSON.stringify(state));
+    localStorage.setItem("retell_sync", JSON.stringify(syncConfig));
+  } catch(e) {}
+}
+
+// ── JSONBin Cloud Sync ──────────────────────────────
+function getSyncPayload() {
+  return { done: state.done, expanded: state.expanded, _v: STATE_VERSION, _ts: Date.now() };
+}
+
+function mergeCloud(cloud) {
+  if (!cloud || !cloud.done) return;
+  // Merge: for each key, true wins (once done, always done)
+  // Expansion preference: local wins (user preference)
+  for (const k of Object.keys(cloud.done)) {
+    if (cloud.done[k]) state.done[k] = true; // cloud says done → local done
+  }
+  for (const k of Object.keys(state.done)) {
+    if (state.done[k]) cloud.done[k] = true; // local done → merge back
+  }
+  // Expanded: local preference wins, cloud only fills missing keys
+  if (cloud.expanded) {
+    for (const k of Object.keys(cloud.expanded)) {
+      if (!(k in state.expanded)) {
+        state.expanded[k] = cloud.expanded[k];
+      }
+    }
+  }
+}
+
+async function pullFromCloud() {
+  if (!syncConfig.configured || !syncConfig.binId || !syncConfig.apiKey) return false;
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${syncConfig.binId}/latest`, {
+      headers: { "X-Master-Key": syncConfig.apiKey }
+    });
+    if (!res.ok) return false;
+    const json = await res.json();
+    const cloud = json.record;
+    if (cloud && cloud.done) {
+      mergeCloud(cloud);
+      saveLocal();
+      return true;
+    }
+  } catch(e) {
+    console.warn("Pull failed (offline?)", e);
+  }
+  return false;
+}
+
+async function pushToCloud() {
+  if (!syncConfig.configured || !syncConfig.binId || !syncConfig.apiKey) return;
+  if (syncing) return;
+  syncing = true;
+  updateSyncBadge("syncing");
+  try {
+    const payload = getSyncPayload();
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${syncConfig.binId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Master-Key": syncConfig.apiKey,
+        "X-Bin-Versioning": "false"
+      },
+      body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+      updateSyncBadge("synced");
+    } else {
+      updateSyncBadge("offline");
+    }
+  } catch(e) {
+    updateSyncBadge("offline");
+  }
+  syncing = false;
+}
+
+function schedulePush() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushToCloud, 1500);
+}
+
+// ── RENDER ──────────────────────────────────────────
+function renderCards(containerId, passages) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  passages.forEach(p => {
+    const isDone = !!state.done[p.id];
+    const isExpanded = !!state.expanded[p.id];
+    const card = document.createElement("div");
+    card.className = "card" + (isDone ? " done" : "") + (isExpanded ? " expanded" : "");
+    card.dataset.id = p.id;
+    const tagsHTML = (p.tags || []).map(t => `<span class="tag">${t}</span>`).join("");
+    card.innerHTML = `
+      <div class="card-top">
+        <div class="cb" data-action="toggle-done"></div>
+        <div class="card-header" data-action="toggle-expand">
+          <div class="card-title">${p.num} · ${p.title}</div>
+          <div class="card-concept">${tagsHTML} ${p.concept}</div>
+          <span class="expand-hint">点击展开 ▼</span>
+        </div>
+      </div>
+      <div class="card-body">${p.body}</div>
+    `;
+    card.querySelector(".cb").addEventListener("click", (e) => { e.stopPropagation(); toggleDone(p.id); });
+    card.querySelector(".card-header").addEventListener("click", () => { toggleExpand(p.id); });
+    container.appendChild(card);
+  });
+}
+
+function refreshAll() {
+  renderCards("cards1", PASSAGES_1);
+  renderCards("cards2", PASSAGES_2);
+  updateProgress();
+}
+
+// ── ACTIONS ─────────────────────────────────────────
+function toggleDone(id) {
+  state.done[id] = !state.done[id];
+  saveLocal();
+  schedulePush();
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  if (!card) return refreshAll();
+  if (state.done[id]) { card.classList.add("done"); }
+  else { card.classList.remove("done"); }
+  updateProgress();
+}
+
+function toggleExpand(id) {
+  state.expanded[id] = !state.expanded[id];
+  saveLocal();
+  schedulePush();
+  const card = document.querySelector(`.card[data-id="${id}"]`);
+  if (!card) return refreshAll();
+  if (state.expanded[id]) { card.classList.add("expanded"); }
+  else { card.classList.remove("expanded"); }
+}
+
+function toggleAll() {
+  const allCards = document.querySelectorAll(".card");
+  const anyCollapsed = Array.from(allCards).some(c => !c.classList.contains("expanded"));
+  allCards.forEach(c => {
+    const id = c.dataset.id;
+    if (anyCollapsed) { c.classList.add("expanded"); state.expanded[id] = true; }
+    else { c.classList.remove("expanded"); state.expanded[id] = false; }
+  });
+  saveLocal();
+  schedulePush();
+}
+
+function updateProgress() {
+  const all = PASSAGES_1.concat(PASSAGES_2);
+  const doneCount = all.filter(p => state.done[p.id]).length;
+  const total = all.length;
+  const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+  document.getElementById("progressFill").style.width = pct + "%";
+  document.getElementById("progressNum").textContent = doneCount + "/" + total;
+  document.getElementById("totalCount").textContent = total;
+}
+
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(el._timeout);
+  el._timeout = setTimeout(() => el.classList.remove("show"), 2000);
+}
+
+// ── SYNC BADGE ──────────────────────────────────────
+function updateSyncBadge(status) {
+  const badge = document.getElementById("syncBadge");
+  const footer = document.getElementById("footerMsg");
+  badge.className = "sync-badge " + status;
+  switch(status) {
+    case "synced":
+      badge.innerHTML = "✅ 已同步";
+      footer.textContent = "进度云端同步中";
+      break;
+    case "syncing":
+      badge.innerHTML = "⏳ 同步中…";
+      footer.textContent = "进度云端同步中";
+      break;
+    case "offline":
+      badge.innerHTML = "⚠️ 离线（本地保存）";
+      footer.textContent = "离线模式 · 恢复网络后自动同步";
+      break;
+    case "unconfigured":
+      badge.innerHTML = "☁️ 点击设置云同步";
+      footer.textContent = "进度保存在本设备";
+      break;
+  }
+}
+
+// ── SETTINGS MODAL ──────────────────────────────────
+function openSettings() {
+  document.getElementById("apiKeyInput").value = syncConfig.apiKey || "";
+  document.getElementById("binIdInput").value = syncConfig.binId || "";
+  document.getElementById("settingsModal").classList.add("open");
+}
+
+function closeSettings() {
+  document.getElementById("settingsModal").classList.remove("open");
+}
+
+async function saveSyncConfig() {
+  const apiKey = document.getElementById("apiKeyInput").value.trim();
+  let binId = document.getElementById("binIdInput").value.trim();
+
+  if (!apiKey) {
+    showToast("❌ 请输入 API Key");
+    return;
+  }
+
+  // If no bin ID, auto-create one
+  if (!binId) {
+    showToast("⏳ 正在创建同步仓库…");
+    try {
+      const res = await fetch("https://api.jsonbin.io/v3/b", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Master-Key": apiKey,
+          "X-Bin-Name": "retell-practice-sync"
+        },
+        body: JSON.stringify(getSyncPayload())
+      });
+      if (!res.ok) {
+        showToast("❌ 创建失败，请检查 API Key 是否正确");
+        return;
+      }
+      const json = await res.json();
+      binId = json.metadata.id;
+      showToast("✅ 同步仓库已创建");
+    } catch(e) {
+      showToast("❌ 网络错误，请检查 API Key");
+      return;
+    }
+  }
+
+  // Test the connection
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+      headers: { "X-Master-Key": apiKey }
+    });
+    if (!res.ok) {
+      showToast("❌ 无法连接，请检查 Bin ID 和 API Key");
+      return;
+    }
+  } catch(e) {
+    showToast("❌ 网络错误");
+    return;
+  }
+
+  syncConfig.apiKey = apiKey;
+  syncConfig.binId = binId;
+  syncConfig.configured = true;
+  saveLocal();
+  closeSettings();
+  updateSyncBadge("synced");
+  showToast("✅ 云同步已启用");
+  // Push current state
+  pushToCloud();
+}
+
+// ── EXPORT / IMPORT (now includes sync config) ──────
+function exportState() {
+  let payload;
+  try {
+    payload = JSON.stringify({
+      state: state,
+      sync: syncConfig.configured ? { binId: syncConfig.binId, apiKey: syncConfig.apiKey } : null
+    }, null, 2);
+  } catch(e) {
+    showToast("❌ 导出失败");
+    return;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(payload).then(() => {
+      showToast(syncConfig.configured
+        ? "✅ 已复制（含同步配置），在另一设备粘贴导入"
+        : "✅ 进度已复制，在另一设备粘贴导入");
+    }).catch(() => {
+      prompt("请手动复制以下内容：", payload);
+      showToast("📋 请手动复制");
+    });
+  } else {
+    prompt("请手动复制以下内容：", payload);
+    showToast("📋 请手动复制");
+  }
+}
+
+function importState() {
+  let raw;
+  const tryImport = (text) => {
+    if (!text) return;
+    try {
+      const imported = JSON.parse(text);
+      if (imported.state && imported.state.done) {
+        // New format with sync config
+        state.done = imported.state.done || {};
+        state.expanded = imported.state.expanded || {};
+        if (imported.sync && imported.sync.apiKey && imported.sync.binId) {
+          syncConfig.apiKey = imported.sync.apiKey;
+          syncConfig.binId = imported.sync.binId;
+          syncConfig.configured = true;
+        }
+      } else if (imported.done) {
+        // Old format (just state)
+        state.done = imported.done || {};
+        state.expanded = imported.expanded || {};
+      } else {
+        throw new Error("Invalid format");
+      }
+      saveLocal();
+      refreshAll();
+      if (syncConfig.configured) {
+        updateSyncBadge("synced");
+        pushToCloud();
+        showToast("✅ 进度及同步配置已导入");
+      } else {
+        updateSyncBadge("unconfigured");
+        showToast("✅ 进度已导入");
+      }
+    } catch(e) {
+      showToast("❌ 数据格式无效，请重试");
+    }
+  };
+
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    navigator.clipboard.readText().then(tryImport).catch(() => {
+      const manual = prompt("请粘贴导入数据（JSON）：");
+      tryImport(manual);
+    });
+  } else {
+    const manual = prompt("请粘贴导入数据（JSON）：");
+    tryImport(manual);
+  }
+}
+
+// ── RESET ───────────────────────────────────────────
+function resetAll() {
+  if (!confirm("确定要清除所有完成标记和展开状态吗？此操作不可撤销。")) return;
+  state = { done: {}, expanded: {} };
+  saveLocal();
+  refreshAll();
+  schedulePush();
+  showToast("🔄 已全部重置");
+}
+
+// ── iOS detection ──────────────────────────────────
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function isStandalone() { return window.navigator.standalone === true; }
+
+// ── SERVICE WORKER ──────────────────────────────────
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE = 'retell-v1';
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll([self.location.href])));
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
+    self.addEventListener('fetch', e => {
+      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request)));
+    });
+  `;
+  const blob = new Blob([swCode], {type: 'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+}
+
+// ── INIT ────────────────────────────────────────────
+async function init() {
+  loadLocal();
+
+  // Show banner for iOS
+  if (isIOS() && !isStandalone()) {
+    document.getElementById("iosBanner").classList.add("visible");
+  }
+
+  // If sync configured, try to pull from cloud
+  if (syncConfig.configured) {
+    updateSyncBadge("syncing");
+    const ok = await pullFromCloud();
+    if (ok) {
+      updateSyncBadge("synced");
+      refreshAll(); // re-render with merged data
+    } else {
+      updateSyncBadge("offline");
+    }
+  } else {
+    updateSyncBadge("unconfigured");
+  }
+
+  // Render & schedule a background push if configured
+  renderCards("cards1", PASSAGES_1);
+  renderCards("cards2", PASSAGES_2);
+  updateProgress();
+
+  // Pull from cloud periodically (every 5 minutes)
+  if (syncConfig.configured) {
+    setInterval(async () => {
+      const ok = await pullFromCloud();
+      if (ok) {
+        refreshAll();
+        updateSyncBadge("synced");
+      }
+    }, 5 * 60 * 1000);
+  }
+}
+
+// Close modal on overlay click
+document.getElementById("settingsModal").addEventListener("click", function(e) {
+  if (e.target === this) closeSettings();
+});
+
+init();
+</script>
+
+</body>
+</html>
