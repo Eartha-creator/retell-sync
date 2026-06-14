@@ -502,7 +502,7 @@ async function pullFromCloud() {
   if (!syncConfig.configured || !syncConfig.binId || !syncConfig.apiKey) return false;
   try {
     const res = await fetch(`https://api.jsonbin.io/v3/b/${syncConfig.binId}/latest`, {
-      headers: { "X-Master-Key": syncConfig.apiKey }
+      headers: { "X-Access-Key": syncConfig.apiKey }
     });
     if (!res.ok) return false;
     const json = await res.json();
@@ -529,7 +529,7 @@ async function pushToCloud() {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "X-Master-Key": syncConfig.apiKey,
+        "X-Access-Key": syncConfig.apiKey,
         "X-Bin-Versioning": "false"
       },
       body: JSON.stringify(payload)
@@ -689,7 +689,7 @@ async function saveSyncConfig() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "X-Master-Key": apiKey,
+          "X-Access-Key": apiKey,
           "X-Bin-Name": "retell-practice-sync"
         },
         body: JSON.stringify(getSyncPayload())
@@ -710,7 +710,7 @@ async function saveSyncConfig() {
   // Test the connection
   try {
     const res = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
-      headers: { "X-Master-Key": apiKey }
+      headers: { "X-Access-Key": apiKey }
     });
     if (!res.ok) {
       showToast("❌ 无法连接，请检查 Bin ID 和 API Key");
